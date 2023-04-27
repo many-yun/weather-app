@@ -1,19 +1,129 @@
 import axios from 'axios';
+import styled from 'styled-components';
+import { useState, useEffect, useRef } from 'react';
+import { useDispatch } from 'react-redux';
+import { setXY } from '../commons/actions';
 
 function SearchMap() {
-   //  axios
-   //     .get(`https://openapi.naver.com/v1/search/local.xml?query=%EC%A3%BC%EC%8B%9D&display=10&start=1&sort=random`)
-   //     .then((res) => {
-   //        // console.log(res.data.response.body.items.item);
-   //        // setTemp(res.data.main.temp);
-   //        // setName(res.data.name);
-   //        // setDescription();
-   //        // weatherDescKo.find((data) => data[`${res.data.weather[0].id}`])[`${res.data.weather[0].id}`],
-   //        // setIcon(`https://openweathermap.org/img/wn/${res.data.weather[0].icon}@2x.png`);
-   //     })
-   //     .catch(function (err) {
-   //        console.log('err!', err);
-   //     });
+   const API_KEY = process.env.REACT_APP_KAKAO;
+   const searchWeather = useRef();
+   const searchLocation = useRef();
+   const [value, setValue] = useState('');
+   const [searchResults, setSearchResults] = useState([]);
+
+   const dispatch = useDispatch();
+
+   value &&
+      axios
+         .get(`https://dapi.kakao.com/v2/local/search/address.json?query=${value}`, {
+            params: {},
+            headers: {
+               Authorization: `KakaoAK ${API_KEY}`,
+            },
+         })
+         .then((res) => {
+            let datas = res.data.documents;
+            setSearchResults(datas);
+         })
+         .catch((err) => {
+            console.log(err);
+         });
+
+   useEffect(() => {
+      searchWeather.current.focus();
+      console.log(searchResults);
+   }, [value]);
+
+   const onChange = (e) => {
+      setValue(e.target.value);
+   };
+
+   const onClick = (e) => {
+      setValue('');
+      searchLocation.current.style = 'display:none';
+      dispatch(setXY(Number(e.target.dataset.y), Number(e.target.dataset.x)));
+   };
+
+   return (
+      <SearchWeatherWrapper>
+         <SearchLocationWrapper>
+            <input
+               type="text"
+               ref={searchWeather}
+               placeholder={'지역명을 검색하세요'}
+               value={value}
+               onChange={onChange}
+            />
+            <button>Search</button>
+         </SearchLocationWrapper>
+         <SearchLocations style={{ display: `${searchResults.length !== 0 ? 'block' : 'none'}` }} ref={searchLocation}>
+            {searchResults &&
+               searchResults.map((data, index) => (
+                  <p key={index} onClick={onClick} data-x={data.x} data-y={data.y}>
+                     {data.address_name}
+                  </p>
+               ))}
+         </SearchLocations>
+      </SearchWeatherWrapper>
+   );
 }
 
 export default SearchMap;
+
+const SearchWeatherWrapper = styled.div`
+   margin-top: 30px;
+   position: relative;
+
+   & > div {
+      margin: 0 auto;
+   }
+`;
+
+const SearchLocationWrapper = styled.div`
+   display: flex;
+   align-item: center;
+   width: 100%;
+
+   & input {
+      height: 50px;
+      border: 2px solid #ccc;
+      border-right: none;
+      border-radius: 25px 0 0 25px;
+      width: calc(100% - 50px);
+      padding: 0 10px;
+
+      &:focus {
+         outline: none;
+      }
+   }
+
+   & button {
+      height: 50px;
+      width: 50px;
+      border: none;
+      background-color: #444;
+      color: white;
+      border-radius: 0 25px 25px 0;
+   }
+`;
+
+const SearchLocations = styled.div`
+   width: calc(100% - 75px);
+   border: 1px solid #ccc;
+   max-height: 200px;
+   position: absolute;
+   left: 25px;
+   top: 50px;
+   text-align: left;
+   overflow-y: scroll;
+
+   & > p {
+      padding: 15px 10px;
+      border-bottom: 1px solid #ccc;
+      cursor: pointer;
+   }
+
+   & > p:hover {
+      background-color: #f3f3f3;
+   }
+`;

@@ -1,35 +1,67 @@
 import axios from 'axios';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import weatherDescKo from '../data/weatherKR';
+import { getToday } from '../utils/getDate';
+import dfs_xy_conv from '../utils/getXY';
+import getNowSky from '../utils/getNowSky';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faLocationDot, faDroplet, faCloudRain } from '@fortawesome/free-solid-svg-icons';
+import windowDrawing from '../assets/window-drawing.png';
+import changeWeaherImage from '../utils/changeWeatherImage';
+import SearchMap from './SearchMap';
+import { useSelector } from 'react-redux';
+import { setXY } from '../commons/actions';
 
 function Weather() {
-   const [temp, setTemp] = useState(0);
-   const [name, setName] = useState('');
-   const [icon, setIcon] = useState('');
-   const [description, setDescription] = useState('');
+   const [t1h, setT1h] = useState(0); // 기온
+   const [state, setState] = useState(''); // 강수형태
+   const [reh, setReh] = useState(''); // 습도
+   const [rn1, setRn1] = useState(''); // 습도
+   const [url, setUrl] = useState('');
+   const newX = dfs_xy_conv(
+      'toXY',
+      useSelector((state) => state.x),
+      useSelector((state) => state.y),
+   ).x;
+   const newY = dfs_xy_conv(
+      'toXY',
+      useSelector((state) => state.x),
+      useSelector((state) => state.y),
+   ).y;
 
-   const searchWeather = useRef();
+   // T1H = 기온 °C
+   // PTY = 강수형태 코드값
+   // REH = 습도 %
+   // RN1 = 1시간 강수량 mm
 
-   const API_KEY = process.env.REACT_APP_KEY;
+   // VEC = 풍향 deg
+
+   const API_KEY = process.env.REACT_APP_KEY2;
    function onGeoOK(position) {
       const lat = position.coords.latitude;
       const lon = position.coords.longitude;
-      axios
-         .get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`)
-         .then((res) => {
-            // console.log(res.data);
-            setTemp(res.data.main.temp);
-            setName(res.data.name);
-            setDescription(
-               weatherDescKo.find((data) => data[`${res.data.weather[0].id}`])[`${res.data.weather[0].id}`],
-            );
-            setIcon(`https://openweathermap.org/img/wn/${res.data.weather[0].icon}@2x.png`);
-         })
+      const x = dfs_xy_conv('toXY', lat, lon).x;
+      const y = dfs_xy_conv('toXY', lat, lon).y;
 
-         .catch(function (err) {
-            console.log(err);
-         });
+      newX !== undefined &&
+         axios
+            .get(
+               `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst?serviceKey=${API_KEY}&pageNo=1&numOfRows=100&dataType=JSON&base_date=${
+                  getToday().day
+               }&base_time=${getToday().time}&nx=${newX}&ny=${newY}`,
+            )
+            .then((res) => {
+               let item = res.data.response.body.items.item;
+               setUrl(changeWeaherImage(item));
+               setState(getNowSky(item));
+               setT1h(item.find((data) => data.category === 'T1H').obsrValue);
+               setReh(item.find((data) => data.category === 'REH').obsrValue);
+               setRn1(item.find((data) => data.category === 'RN1').obsrValue);
+            })
+
+            .catch(function (err) {
+               console.log(err);
+            });
    }
 
    function onGeoErr() {
@@ -38,25 +70,113 @@ function Weather() {
 
    useEffect(() => {
       navigator.geolocation.getCurrentPosition(onGeoOK, onGeoErr);
-      searchWeather.current.focus();
-   }, []);
+   }, [useSelector((state) => state.x)]);
 
    return (
       <WeatherWrapper>
-         <p>{temp}°C</p>
-         <p>{name}</p>
-         <img src={icon} />
-         <p>{description}</p>
-         <SearchWeatherWrapper>
-            <input type="text" ref={searchWeather} />
-            <button>Search</button>
-         </SearchWeatherWrapper>
+         <WeatherInfoWrapper>
+            <WeatherLocation>
+               <FontAwesomeIcon icon={faLocationDot} /> 남양주?
+            </WeatherLocation>
+            <WeatherT1h>{t1h}°C</WeatherT1h>
+            <WeatherState>{state}</WeatherState>
+            <RehRn1Wrapper>
+               <WeatherReh>
+                  <FontAwesomeIcon icon={faDroplet} /> 습도 {reh}%
+               </WeatherReh>
+               <WeatherRn1>
+                  <FontAwesomeIcon icon={faCloudRain} /> 1시간 강수량 {rn1}mm
+               </WeatherRn1>
+            </RehRn1Wrapper>
+            <WeatherTime>{getToday().refTime}:00 기준</WeatherTime>
+            <SearchMap />
+         </WeatherInfoWrapper>
+         <WeatherImageWrapper>
+            <WeatherImage style={{ backgroundImage: `${url}` }}></WeatherImage>
+            <WindowImage></WindowImage>
+         </WeatherImageWrapper>
       </WeatherWrapper>
    );
 }
 
 export default Weather;
 
-const WeatherWrapper = styled.div``;
+const WeatherWrapper = styled.div`
+   display: flex;
+   align-items: center;
+   max-width: 1200px;
+   margin: 0 auto;
 
-const SearchWeatherWrapper = styled.div``;
+   & > div {
+      width: 50%;
+   }
+`;
+
+const WeatherInfoWrapper = styled.div`
+   background-color: rgba(255, 255, 255, 0.5);
+   border-radius: 20px;
+   width: 600px;
+   margin: 0 auto;
+   padding: 30px;
+`;
+
+const WeatherImageWrapper = styled.div`
+   width: 600px;
+   height: 600px;
+   position: relative;
+
+   & > div {
+      position: absolute;
+   }
+`;
+
+const WeatherImage = styled.div`
+   width: 286px;
+   height: 320px;
+   background-size: cover;
+   background-repeat: no-repeat;
+   background-position: center;
+
+   & {
+      left: 157px;
+      top: 130px;
+      background-color: rgba(0, 0, 0, 0.5);
+   }
+`;
+
+const WindowImage = styled.div`
+   width: 100%;
+   height: 100%;
+   background: url(${windowDrawing});
+   left: 0;
+   top: 0;
+`;
+
+const WeatherLocation = styled.p`
+   font-weight: bold;
+`;
+
+const WeatherT1h = styled.p`
+   font-size: 3.5rem;
+   padding: 30px;
+`;
+
+const WeatherState = styled.p``;
+
+const RehRn1Wrapper = styled.div`
+   padding: 30px 0;
+   & > p {
+      width: calc(50% - 1px);
+      display: inline-block;
+   }
+`;
+
+const WeatherReh = styled.p`
+   border-right: 1px solid #ccc;
+`;
+
+const WeatherRn1 = styled.p``;
+
+const WeatherTime = styled.p`
+   color: #999;
+`;

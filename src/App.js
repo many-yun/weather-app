@@ -1,14 +1,14 @@
 import './App.css';
 import Weather from './components/Weather';
-import Weather2 from './components/Weather2';
+import WeeklyWeather from './components/WeeklyWeather';
 import SearchMap from './components/SearchMap';
 
 function App() {
    return (
       <div className="App">
-         {/* <Weather /> */}
-         <Weather2 />
-         <SearchMap />
+         <Weather />
+         {/* <WeeklyWeather /> */}
+         {/* <SearchMap /> */}
       </div>
    );
 }
