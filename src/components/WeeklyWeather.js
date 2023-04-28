@@ -31,24 +31,24 @@
 //       const lon = position.coords.longitude;
 //       const x = dfs_xy_conv('toXY', lat, lon).x;
 //       const y = dfs_xy_conv('toXY', lat, lon).y;
-//       axios
-//          .get(
-//             `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=${API_KEY}&pageNo=1&numOfRows=99&dataType=JSON&base_date=${
-//                getToday().day
-//             }&base_time=${getToday().time}&nx=${x}&ny=${y}`,
-//          )
-//          .then((res) => {
+
+//       const getWeeklyWeather = async () => {
+//          try {
+//             const res = await axios.get(
+//                `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst?serviceKey=${API_KEY}&pageNo=1&numOfRows=99&dataType=JSON&base_date=${
+//                   getToday().day
+//                }&base_time=${getToday().time}&nx=${x}&ny=${y}`,
+//             );
 //             let item = res.data.response.body.items.item;
 //             console.log(item.find((data) => data.category === 'SKY').fcstValue);
 //             setTemp(item.find((data) => data.category === 'T1H').fcstValue);
 //             setHumidity(item.find((data) => data.category === 'REH').fcstValue);
 //             // fastvalue가 number가 아니라 string..
 //             setState(getWeeklySky(item));
-//          })
-
-//          .catch(function (err) {
-//             console.log('err!', err);
-//          });
+//          } catch (err) {
+//             console.log(err);
+//          }
+//       };
 //    }
 
 //    function onGeoErr() {

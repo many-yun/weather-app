@@ -1,15 +1,20 @@
+@font-face {
+   font-family: 'Dovemayo_gothic';
+   src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.1/Dovemayo_gothic.woff2') format('woff2');
+   font-weight: normal;
+   font-style: normal;
+}
+
 .App {
    text-align: center;
-}
-body {
+   display: flex;
    width: 100%;
    height: 100vh;
-   background-size: cover;
-   background-repeat: no-repeat;
-   background-position: center;
-   /* background-color: #f5eddd; */
-   /* background-color: #c3d9e4; */
-   /* background-color: #fffbf1; */
+}
+body,
+html {
+   width: 100%;
+   height: 100vh;
 }
 
 .App-logo {
@@ -45,6 +50,31 @@ body {
    to {
       transform: rotate(360deg);
    }
+}
+
+/* width */
+::-webkit-scrollbar {
+   width: 8px;
+   height: 8px;
+   margin-right: 50px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+   background: rgba(255, 255, 255, 0.2);
+   border-radius: 4px;
+   padding: 10px 0;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+   background: #ccc;
+   border-radius: 4px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+   background: #ddd;
 }
 
 /* http://meyerweb.com/eric/tools/css/reset/ 
@@ -141,6 +171,7 @@ video {
    font: inherit;
    vertical-align: baseline;
    box-sizing: border-box;
+   font-family: 'Dovemayo_gothic';
 }
 /* HTML5 display-role reset for older browsers */
 article,

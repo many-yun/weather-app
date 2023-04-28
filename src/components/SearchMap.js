@@ -3,6 +3,8 @@ import styled from 'styled-components';
 import { useState, useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { setXY } from '../commons/actions';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 
 function SearchMap() {
    const API_KEY = process.env.REACT_APP_KAKAO;
@@ -56,7 +58,9 @@ function SearchMap() {
                value={value}
                onChange={onChange}
             />
-            <button>Search</button>
+            <button>
+               <FontAwesomeIcon icon={faMagnifyingGlass} />
+            </button>
          </SearchLocationWrapper>
          <SearchLocations style={{ display: `${searchResults.length !== 0 ? 'block' : 'none'}` }} ref={searchLocation}>
             {searchResults &&
@@ -103,9 +107,15 @@ const SearchLocationWrapper = styled.div`
       height: 50px;
       width: 50px;
       border: none;
-      background-color: #444;
+      background-color: #333;
       color: white;
       border-radius: 0 25px 25px 0;
+
+      & svg {
+         width: 20px;
+         height: 20px;
+         margin-left: -3px;
+      }
    }
 `;
 

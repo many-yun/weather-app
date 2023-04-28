@@ -1,53 +1,53 @@
 import axios from 'axios';
 import { useState, useEffect } from 'react';
-import styled from 'styled-components';
 import { getToday } from '../utils/getDate';
 import dfs_xy_conv from '../utils/getXY';
 import getNowSky from '../utils/getNowSky';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLocationDot, faDroplet, faCloudRain } from '@fortawesome/free-solid-svg-icons';
-import windowDrawing from '../assets/window-drawing.png';
 import changeWeaherImage from '../utils/changeWeatherImage';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+   faLocationDot,
+   faDroplet,
+   faCloudRain,
+   faCloudSun,
+   faTemperatureThreeQuarters,
+   faStar,
+} from '@fortawesome/free-solid-svg-icons';
 import SearchMap from './SearchMap';
-import { useSelector } from 'react-redux';
-import { setXY } from '../commons/actions';
-import { useDispatch } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { setXY, addBookmark, delBookmark } from '../commons/actions';
 import store from '../commons/store';
+import * as S from './styles/Weather.style';
 
 function Weather() {
-   const [t1h, setT1h] = useState(0); // 기온
+   const [t1h, setT1h] = useState(0); // 기온 °C
    const [pty, setPty] = useState(''); // 강수형태
-   const [reh, setReh] = useState(''); // 습도
-   const [rn1, setRn1] = useState(''); // 습도
+   const [reh, setReh] = useState(''); // 습도 %
+   const [rn1, setRn1] = useState(''); // 1시간 강수량 mm
    const [url, setUrl] = useState(''); // 이미지 url
+   const [bookmarkToggle, setBookmarkToggle] = useState('none');
    const newX = dfs_xy_conv(
       'toXY',
-      useSelector((state) => state.x),
-      useSelector((state) => state.y),
+      useSelector((state) => state.reducer.x),
+      useSelector((state) => state.reducer.y),
    ).x;
    const newY = dfs_xy_conv(
       'toXY',
-      useSelector((state) => state.x),
-      useSelector((state) => state.y),
+      useSelector((state) => state.reducer.x),
+      useSelector((state) => state.reducer.y),
    ).y;
 
-   // T1H = 기온 °C
-   // PTY = 강수형태 코드값
-   // REH = 습도 %
-   // RN1 = 1시간 강수량 mm
-
-   // VEC = 풍향 deg
    const dispatch = useDispatch();
 
    const API_KEY = process.env.REACT_APP_KEY2;
+   const API_KEY2 = process.env.REACT_APP_KAKAO;
    function onGeoOK(position) {
       const lat = position.coords.latitude;
       const lon = position.coords.longitude;
-      const x = dfs_xy_conv('toXY', lat, lon).x;
-      const y = dfs_xy_conv('toXY', lat, lon).y;
 
+      // 첫 렌더링
       if (pty === '') {
-         dispatch(setXY(lat, lon, '진접읍'));
+         dispatch(setXY(lat, lon, ''));
       }
 
       const getWeather = async () => {
@@ -65,6 +65,30 @@ function Weather() {
             setT1h(item.find((data) => data.category === 'T1H').obsrValue);
             setReh(item.find((data) => data.category === 'REH').obsrValue);
             setRn1(item.find((data) => data.category === 'RN1').obsrValue);
+
+            // 좌표 > 주소 변환 검색
+            const res2 =
+               newX !== undefined &&
+               (await axios.get(
+                  `https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${lon}&y=${lat}&input_coord=WGS84`,
+                  {
+                     params: {},
+                     headers: {
+                        Authorization: `KakaoAK ${API_KEY2}`,
+                     },
+                  },
+               ));
+            let item2 = res2.data.documents[0].address;
+
+            if (lat === store.getState().reducer.x) {
+               dispatch(
+                  setXY(
+                     lat,
+                     lon,
+                     `${item2.region_1depth_name} ${item2.region_2depth_name} ${item2.region_3depth_name}`,
+                  ),
+               );
+            }
          } catch (err) {
             console.log(err);
          }
@@ -78,114 +102,98 @@ function Weather() {
 
    useEffect(() => {
       navigator.geolocation.getCurrentPosition(onGeoOK, onGeoErr);
-   }, [store.getState()]);
+   }, [store.getState().reducer.x]);
+
+   const onClickBookmark = () => {
+      const nowX = store.getState().reducer.x;
+      const nowY = store.getState().reducer.y;
+      const nowLocation = store.getState().reducer.location;
+      const bookmarkLocatoin = store.getState().reducer2.bookmarks;
+
+      const bookmark = {
+         x: nowX,
+         y: nowY,
+         location: nowLocation,
+      };
+      if (bookmarkLocatoin.find((item) => item.location === nowLocation) === undefined) {
+         pty !== '' && dispatch(addBookmark(bookmark));
+      } else {
+         pty !== '' && dispatch(delBookmark(nowLocation));
+      }
+   };
 
    return (
-      <WeatherWrapper>
-         <WeatherInfoWrapper>
-            <WeatherLocation>
+      <S.WeatherWrapper>
+         <S.WeatherInfoWrapper>
+            <S.HamburgerBtn
+               onClick={() => {
+                  bookmarkToggle === 'none' ? setBookmarkToggle('block') : setBookmarkToggle('none');
+               }}>
+               <div></div>
+               <div style={{ width: bookmarkToggle === 'none' ? '100%' : '50%' }}></div>
+               <div></div>
+            </S.HamburgerBtn>
+            <S.WeatherLocation>
                <FontAwesomeIcon icon={faLocationDot} />{' '}
-               {useSelector((state) => state.location !== undefined && state.location)}
-            </WeatherLocation>
-            <WeatherT1h>{t1h}°C</WeatherT1h>
-            <WeatherState>{pty}</WeatherState>
-            <RehRn1Wrapper>
-               <WeatherReh>
+               {useSelector(
+                  (state) =>
+                     state.reducer.location !== undefined && state.reducer.location !== '' && state.reducer.location,
+               )}
+            </S.WeatherLocation>
+            <S.WeatherT1h>
+               <FontAwesomeIcon icon={faTemperatureThreeQuarters} />
+               {t1h}°C
+            </S.WeatherT1h>
+            <S.PtyRehRn1Wrapper>
+               <S.WeatherPty>
+                  <FontAwesomeIcon icon={faCloudSun} /> {pty}
+               </S.WeatherPty>
+               <S.WeatherReh>
                   <FontAwesomeIcon icon={faDroplet} /> 습도 {reh}%
-               </WeatherReh>
-               <WeatherRn1>
-                  <FontAwesomeIcon icon={faCloudRain} /> 1시간 강수량 {rn1}mm
-               </WeatherRn1>
-            </RehRn1Wrapper>
-            <WeatherTime>{getToday().refTime}:00 기준</WeatherTime>
+               </S.WeatherReh>
+               <S.WeatherRn1>
+                  <FontAwesomeIcon icon={faCloudRain} /> 강수량 {rn1}mm
+               </S.WeatherRn1>
+            </S.PtyRehRn1Wrapper>
+            <S.WeatherTime>{getToday().refTime}:00 기준 / 자료제공 : 기상청</S.WeatherTime>
             <SearchMap />
-         </WeatherInfoWrapper>
-         <WeatherImageWrapper>
-            <WeatherImage style={{ backgroundImage: `${url}` }}></WeatherImage>
-            <WindowImage></WindowImage>
-         </WeatherImageWrapper>
-      </WeatherWrapper>
+            <S.Star onClick={onClickBookmark}>
+               <FontAwesomeIcon
+                  icon={faStar}
+                  style={{
+                     color:
+                        useSelector((state) => state.reducer2.bookmarks).find(
+                           (item) => item.location === store.getState().reducer.location,
+                        ) === undefined
+                           ? '#aaa'
+                           : '#ebc22a',
+                  }}
+               />
+            </S.Star>
+            <S.BookmarkList style={{ display: bookmarkToggle }}>
+               <p>
+                  <FontAwesomeIcon icon={faStar} /> 즐겨찾는 지역
+               </p>
+               {useSelector((state) =>
+                  state.reducer2.bookmarks.map((item, index) => (
+                     <div
+                        key={index}
+                        onClick={() => {
+                           bookmarkToggle === 'none' ? setBookmarkToggle('block') : setBookmarkToggle('none');
+                           dispatch(setXY(item.x, item.y, item.location));
+                        }}>
+                        {item.location}
+                     </div>
+                  )),
+               )}
+            </S.BookmarkList>
+         </S.WeatherInfoWrapper>
+         <S.WeatherImageWrapper>
+            <S.WeatherImage style={{ backgroundImage: `${url}` }}></S.WeatherImage>
+            <S.WindowImage></S.WindowImage>
+         </S.WeatherImageWrapper>
+      </S.WeatherWrapper>
    );
 }
 
 export default Weather;
-
-const WeatherWrapper = styled.div`
-   display: flex;
-   align-items: center;
-   max-width: 1200px;
-   margin: 0 auto;
-
-   & > div {
-      width: 50%;
-   }
-`;
-
-const WeatherInfoWrapper = styled.div`
-   background-color: rgba(255, 255, 255, 0.5);
-   border-radius: 20px;
-   width: 600px;
-   margin: 0 auto;
-   padding: 30px;
-`;
-
-const WeatherImageWrapper = styled.div`
-   width: 600px;
-   height: 600px;
-   position: relative;
-
-   & > div {
-      position: absolute;
-   }
-`;
-
-const WeatherImage = styled.div`
-   width: 286px;
-   height: 320px;
-   background-size: cover;
-   background-repeat: no-repeat;
-   background-position: center;
-
-   & {
-      left: 157px;
-      top: 130px;
-      background-color: rgba(0, 0, 0, 0.5);
-   }
-`;
-
-const WindowImage = styled.div`
-   width: 100%;
-   height: 100%;
-   background: url(${windowDrawing});
-   left: 0;
-   top: 0;
-`;
-
-const WeatherLocation = styled.p`
-   font-weight: bold;
-`;
-
-const WeatherT1h = styled.p`
-   font-size: 3.5rem;
-   padding: 30px;
-`;
-
-const WeatherState = styled.p``;
-
-const RehRn1Wrapper = styled.div`
-   padding: 30px 0;
-   & > p {
-      width: calc(50% - 1px);
-      display: inline-block;
-   }
-`;
-
-const WeatherReh = styled.p`
-   border-right: 1px solid #ccc;
-`;
-
-const WeatherRn1 = styled.p``;
-
-const WeatherTime = styled.p`
-   color: #999;
-`;
