@@ -11,13 +11,15 @@ import changeWeaherImage from '../utils/changeWeatherImage';
 import SearchMap from './SearchMap';
 import { useSelector } from 'react-redux';
 import { setXY } from '../commons/actions';
+import { useDispatch } from 'react-redux';
+import store from '../commons/store';
 
 function Weather() {
    const [t1h, setT1h] = useState(0); // 기온
-   const [state, setState] = useState(''); // 강수형태
+   const [pty, setPty] = useState(''); // 강수형태
    const [reh, setReh] = useState(''); // 습도
    const [rn1, setRn1] = useState(''); // 습도
-   const [url, setUrl] = useState('');
+   const [url, setUrl] = useState(''); // 이미지 url
    const newX = dfs_xy_conv(
       'toXY',
       useSelector((state) => state.x),
@@ -35,6 +37,7 @@ function Weather() {
    // RN1 = 1시간 강수량 mm
 
    // VEC = 풍향 deg
+   const dispatch = useDispatch();
 
    const API_KEY = process.env.REACT_APP_KEY2;
    function onGeoOK(position) {
@@ -43,25 +46,30 @@ function Weather() {
       const x = dfs_xy_conv('toXY', lat, lon).x;
       const y = dfs_xy_conv('toXY', lat, lon).y;
 
-      newX !== undefined &&
-         axios
-            .get(
-               `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst?serviceKey=${API_KEY}&pageNo=1&numOfRows=100&dataType=JSON&base_date=${
-                  getToday().day
-               }&base_time=${getToday().time}&nx=${newX}&ny=${newY}`,
-            )
-            .then((res) => {
-               let item = res.data.response.body.items.item;
-               setUrl(changeWeaherImage(item));
-               setState(getNowSky(item));
-               setT1h(item.find((data) => data.category === 'T1H').obsrValue);
-               setReh(item.find((data) => data.category === 'REH').obsrValue);
-               setRn1(item.find((data) => data.category === 'RN1').obsrValue);
-            })
+      if (pty === '') {
+         dispatch(setXY(lat, lon, '진접읍'));
+      }
 
-            .catch(function (err) {
-               console.log(err);
-            });
+      const getWeather = async () => {
+         try {
+            const res =
+               newX !== undefined &&
+               (await axios.get(
+                  `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst?serviceKey=${API_KEY}&pageNo=1&numOfRows=100&dataType=JSON&base_date=${
+                     getToday().day
+                  }&base_time=${getToday().time}&nx=${newX}&ny=${newY}`,
+               ));
+            let item = res.data.response.body.items.item;
+            setUrl(changeWeaherImage(item));
+            setPty(getNowSky(item));
+            setT1h(item.find((data) => data.category === 'T1H').obsrValue);
+            setReh(item.find((data) => data.category === 'REH').obsrValue);
+            setRn1(item.find((data) => data.category === 'RN1').obsrValue);
+         } catch (err) {
+            console.log(err);
+         }
+      };
+      getWeather();
    }
 
    function onGeoErr() {
@@ -70,16 +78,17 @@ function Weather() {
 
    useEffect(() => {
       navigator.geolocation.getCurrentPosition(onGeoOK, onGeoErr);
-   }, [useSelector((state) => state.x)]);
+   }, [store.getState()]);
 
    return (
       <WeatherWrapper>
          <WeatherInfoWrapper>
             <WeatherLocation>
-               <FontAwesomeIcon icon={faLocationDot} /> 남양주?
+               <FontAwesomeIcon icon={faLocationDot} />{' '}
+               {useSelector((state) => state.location !== undefined && state.location)}
             </WeatherLocation>
             <WeatherT1h>{t1h}°C</WeatherT1h>
-            <WeatherState>{state}</WeatherState>
+            <WeatherState>{pty}</WeatherState>
             <RehRn1Wrapper>
                <WeatherReh>
                   <FontAwesomeIcon icon={faDroplet} /> 습도 {reh}%

@@ -13,25 +13,27 @@ function SearchMap() {
 
    const dispatch = useDispatch();
 
-   value &&
-      axios
-         .get(`https://dapi.kakao.com/v2/local/search/address.json?query=${value}`, {
-            params: {},
-            headers: {
-               Authorization: `KakaoAK ${API_KEY}`,
-            },
-         })
-         .then((res) => {
-            let datas = res.data.documents;
-            setSearchResults(datas);
-         })
-         .catch((err) => {
-            console.log(err);
-         });
+   const getGeoData = async () => {
+      try {
+         const res =
+            value !== '' &&
+            (await axios.get(`https://dapi.kakao.com/v2/local/search/address.json?query=${value}`, {
+               params: {},
+               headers: {
+                  Authorization: `KakaoAK ${API_KEY}`,
+               },
+            }));
+         let datas = res.data.documents;
+         value !== '' && setSearchResults(datas);
+      } catch (err) {
+         value !== '' && console.log(err);
+      }
+   };
 
    useEffect(() => {
+      getGeoData();
       searchWeather.current.focus();
-      console.log(searchResults);
+      // console.log(searchResults);
    }, [value]);
 
    const onChange = (e) => {
@@ -40,8 +42,8 @@ function SearchMap() {
 
    const onClick = (e) => {
       setValue('');
+      dispatch(setXY(Number(e.target.dataset.y), Number(e.target.dataset.x), e.target.dataset.location));
       searchLocation.current.style = 'display:none';
-      dispatch(setXY(Number(e.target.dataset.y), Number(e.target.dataset.x)));
    };
 
    return (
@@ -59,7 +61,7 @@ function SearchMap() {
          <SearchLocations style={{ display: `${searchResults.length !== 0 ? 'block' : 'none'}` }} ref={searchLocation}>
             {searchResults &&
                searchResults.map((data, index) => (
-                  <p key={index} onClick={onClick} data-x={data.x} data-y={data.y}>
+                  <p key={index} onClick={onClick} data-x={data.x} data-y={data.y} data-location={data.address_name}>
                      {data.address_name}
                   </p>
                ))}
