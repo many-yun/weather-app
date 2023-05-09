@@ -3,7 +3,7 @@ export function getToday() {
 
    let year = today.getFullYear();
    let month = today.getMonth() <= 10 ? `0${today.getMonth() + 1}` : today.getMonth() + 1;
-   let date = today.getDate();
+   let date = today.getDate() < 10 ? `0${today.getDate()}` : today.getDate();
    // 30분 전 시간의 정각(매30분마다 api 제공)
    let hour = today.getMinutes() < 40 && today.getHours() !== 0 ? today.getHours() - 1 : today.getHours();
    let min = today.getMinutes() < 40 ? '40' : today.getMinutes();
