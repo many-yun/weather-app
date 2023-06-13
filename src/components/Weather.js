@@ -18,8 +18,11 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setXY, addBookmark, delBookmark } from '../commons/actions';
 import store from '../commons/store';
 import * as S from './styles/Weather.style';
+import Loading from './Loading';
 
 function Weather() {
+   const [loading, setLoading] = useState(true);
+
    const [t1h, setT1h] = useState(0); // 기온 °C
    const [pty, setPty] = useState(''); // 강수형태
    const [reh, setReh] = useState(''); // 습도 %
@@ -51,11 +54,12 @@ function Weather() {
       }
 
       const getWeather = async () => {
+         setLoading(true);
          try {
             const res =
                newX !== undefined &&
                (await axios.get(
-                  `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst?serviceKey=${API_KEY}&pageNo=1&numOfRows=100&dataType=JSON&base_date=${
+                  `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst?serviceKey=${API_KEY}&pageNo=1&numOfRows=10&dataType=JSON&base_date=${
                      getToday().day
                   }&base_time=${getToday().time}&nx=${newX}&ny=${newY}`,
                ));
@@ -89,6 +93,7 @@ function Weather() {
                   ),
                );
             }
+            setLoading(false);
          } catch (err) {
             console.log(err);
          }
@@ -135,24 +140,27 @@ function Weather() {
             </S.HamburgerBtn>
             <S.WeatherLocation>
                <FontAwesomeIcon icon={faLocationDot} />{' '}
-               {useSelector(
-                  (state) =>
-                     state.reducer.location !== undefined && state.reducer.location !== '' && state.reducer.location,
+               {useSelector((state) =>
+                  loading ? (
+                     <Loading />
+                  ) : (
+                     state.reducer.location !== undefined && state.reducer.location !== '' && state.reducer.location
+                  ),
                )}
             </S.WeatherLocation>
             <S.WeatherT1h>
                <FontAwesomeIcon icon={faTemperatureThreeQuarters} />
-               {t1h}°C
+               {loading ? <Loading /> : t1h}°C
             </S.WeatherT1h>
             <S.PtyRehRn1Wrapper>
                <S.WeatherPty>
-                  <FontAwesomeIcon icon={faCloudSun} /> {pty}
+                  <FontAwesomeIcon icon={faCloudSun} /> {loading ? <Loading /> : pty}
                </S.WeatherPty>
                <S.WeatherReh>
-                  <FontAwesomeIcon icon={faDroplet} /> 습도 {reh}%
+                  <FontAwesomeIcon icon={faDroplet} /> 습도 {loading ? <Loading /> : reh}%
                </S.WeatherReh>
                <S.WeatherRn1>
-                  <FontAwesomeIcon icon={faCloudRain} /> 강수량 {rn1}mm
+                  <FontAwesomeIcon icon={faCloudRain} /> 강수량 {loading ? <Loading /> : rn1}mm
                </S.WeatherRn1>
             </S.PtyRehRn1Wrapper>
             <S.WeatherTime>{getToday().refTime}:00 기준 / 자료제공 : 기상청</S.WeatherTime>
