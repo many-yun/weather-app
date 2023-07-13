@@ -88,6 +88,10 @@ export const WeatherWrapper = styled.div`
    width: 1200px;
    margin: -100px auto 0 auto;
 
+   @media screen and (max-width: 1280px) {
+      width: 1000px;
+   }
+
    & > div {
       width: 50%;
    }
@@ -106,6 +110,10 @@ export const WeatherImageWrapper = styled.div`
    height: 600px;
    position: relative;
 
+   @media screen and (max-width: 1280px) {
+      height: 500px;
+   }
+
    & > div {
       position: absolute;
    }
@@ -123,12 +131,23 @@ export const WeatherImage = styled.div`
       top: 130px;
       background-color: rgba(0, 0, 0, 0.5);
    }
+
+   @media screen and (max-width: 1280px) {
+      width: 256px;
+      height: 280px;
+
+      & {
+         left: 127px;
+         top: 100px;
+      }
+   }
 `;
 
 export const WindowImage = styled.div`
    width: 100%;
    height: 100%;
    background: url(${windowDrawing});
+   background-size: cover;
    left: 0;
    top: 0;
 `;
